@@ -5,10 +5,27 @@
 from splinter import Browser
 from bs4 import BeautifulSoup
 import pandas as pd 
+import datetime as dt
 
-# Windows users - Make sure your chromedriver.exe is in the same folder as this program
-executable_path = {'executable_path': 'chromedriver.exe'}
-browser = Browser('chrome', **executable_path, headless=False)
+def scrape_all():
+    # Windows users - Make sure your chromedriver.exe is in the same folder as this program
+    # executable_path = {'executable_path': 'chromedriver.exe'}
+    # Initiate headless driver for deployement
+    # browser = Browser('chrome', **executable_path, headless=False)
+    browser = Browser("chrome", executable_path='chromedriver', headless=True)
+    
+    # Use the mars_news function to pull data
+    news_title, news_paragraph = mars_news(browser)
+    # Run all the scraping functions and store results in a dictionary
+    data = {"news_title": news_title,
+            "news_paragraph": news_paragraph,
+            "featured_image": featured_image(browser),
+            "facts": mars_facts(),
+            "last_modified": dt.datetime.now()
+    }
+    #Stop the webdriver and return data
+    browser.quit()
+    return data
 
 def mars_news(browser):
     # ### Mars News Article Scraping
@@ -32,33 +49,53 @@ def mars_news(browser):
         return None, None
     
     return news_title, news_p
+# Original code would not work
+# def featured_image(browser):
+#     # ### Scrape Featured Image from JPL site
 
+#     # Visit URL
+#     url = 'https://www.jpl.nasa.gov/spaceimages/?search=&category=Mars'
+#     browser.visit(url)
+
+#     # Find and click the full image button
+#     full_image_elem = browser.find_by_id('full_image')
+
+#     # Find the "more info" button and click it
+#     browser.is_element_present_by_text('more info', wait_time=1)
+#     more_info_elem = browser.links.find_by_partial_text('more info')
+
+#     # Parse the resulting HTML with soup
+#     html = browser.html
+#     img_soup = BeautifulSoup(html, 'html.parser')
+    
+#     try:
+#         # Find the relative image url
+#         img_url_rel = img_soup.select_one('figure.lede a img').get("src")
+     
+#     except AttributeError:
+#         return None
+
+#     # Use the base URL to create an absolute URL
+#     img_url = f'https://www.jpl.nasa.gov{img_url_rel}'
+
+#     return img_url
 def featured_image(browser):
     # ### Scrape Featured Image from JPL site
 
     # Visit URL
     url = 'https://www.jpl.nasa.gov/spaceimages/?search=&category=Mars'
     browser.visit(url)
-
-    # Find and click the full image button
-    full_image_elem = browser.find_by_id('full_image')
-
-    # Find the "more info" button and click it
-    browser.is_element_present_by_text('more info', wait_time=1)
-    more_info_elem = browser.links.find_by_partial_text('more info')
-
-    # Parse the resulting HTML with soup
+    
     html = browser.html
     img_soup = BeautifulSoup(html, 'html.parser')
-    
-    try:
-        # Find the relative image url
-        img_url_rel = img_soup.select_one('figure.lede a img').get("src")
+    try: 
+        image_url = img_soup.find('div', class_ = 'carousel_items')('article')[0]['style'].\
+        replace('background-image: url(','').replace(');', '')[1:-1]
     except AttributeError:
         return None
 
-    # Use the base URL to create an absolute URL
-    img_url = f'https://www.jpl.nasa.gov{img_url_rel}'
+       # Use the base URL to create an absolute URL
+    img_url = f'https://www.jpl.nasa.gov{image_url}'
 
     return img_url
 
@@ -82,5 +119,6 @@ def mars_facts():
     #Convert dataframe to usable HTML
     return df.to_html()
 
-browser.quit() 
-
+if __name__ == "__main__":
+    # If running as script, print scraped data 
+    print(scrape_all())
