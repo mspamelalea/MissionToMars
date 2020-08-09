@@ -16,12 +16,15 @@ def scrape_all():
     
     # Use the mars_news function to pull data
     news_title, news_paragraph = mars_news(browser)
+    image1_title = hemisphere1_title(browser)
     # Run all the scraping functions and store results in a dictionary
     data = {"news_title": news_title,
             "news_paragraph": news_paragraph,
             "featured_image": featured_image(browser),
             "facts": mars_facts(),
-            "last_modified": dt.datetime.now()
+            "last_modified": dt.datetime.now(),
+            "hemisphere_one": hemisphere1_img(browser),
+            "image_one_title": image1_title
     }
     #Stop the webdriver and return data
     browser.quit()
@@ -79,6 +82,7 @@ def mars_news(browser):
 #     img_url = f'https://www.jpl.nasa.gov{img_url_rel}'
 
 #     return img_url
+
 def featured_image(browser):
     # ### Scrape Featured Image from JPL site
 
@@ -118,6 +122,65 @@ def mars_facts():
 
     #Convert dataframe to usable HTML
     return df.to_html()
+
+def  hemisphere1_img(browser):
+    # ### Scrape Featured Image from USGS site
+    ### Get Mars Hemisphere images
+
+    # Visit URL: USGS
+    url = 'https://astrogeology.usgs.gov/search/results?q=hemisphere+enhanced&k1=target&v1=Mars'
+    browser.visit(url)
+    html= browser.html
+
+    # Find the full image 
+    imgs_soup = BeautifulSoup(html, 'html.parser')
+    collapsible_results = imgs_soup.find('div', class_ = 'collapsible results')
+    item_one = collapsible_results.find('div', class_ = 'item')('a')[1]['href']
+ 
+    # Use the base URL to create an absolute URL
+    item_one_url = f'https://astrogeology.usgs.gov{item_one}'
+
+    # Go to the link and parse html 
+    browser.visit(item_one_url)
+    html= browser.html
+    img1_soup = BeautifulSoup(html, 'html.parser')
+    
+    try: 
+         # Find the relative image url
+        img1_full_url = img1_soup.select_one('ul li a').get('href')
+    except AttributeError:
+        return None
+    
+    img1_full_url = f'{img1_full_url}'
+
+    return img1_full_url
+
+    
+def hemisphere1_title(browser):
+    # ### Scrape Featured Image from USGS site
+    ### Get Mars Hemisphere images
+
+    # Visit URL: USGS
+    url = 'https://astrogeology.usgs.gov/search/results?q=hemisphere+enhanced&k1=target&v1=Mars'
+    browser.visit(url)
+    html= browser.html
+
+    # Find   the full image button 
+    imgs_soup = BeautifulSoup(html, 'html.parser')
+    collapsible_results = imgs_soup.find('div', class_ = 'collapsible results')
+    item_one = collapsible_results.find('div', class_ = 'item')('a')[1]['href']
+ 
+    # Use the base URL to create an absolute URL
+    item_one_url = f'https://astrogeology.usgs.gov{item_one}'
+    item_one_url
+
+    # Go to the link and parse html 
+    browser.visit(item_one_url)
+    html= browser.html
+    img1_soup = BeautifulSoup(html, 'html.parser')
+
+    image1_title = img1_soup.select('div', class_ = 'content')[0]('h2')[0].text
+    return image1_title
 
 if __name__ == "__main__":
     # If running as script, print scraped data 
